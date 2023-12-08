@@ -26,7 +26,7 @@ googleButton.addEventListener('click', function () {
     var googleProvider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(googleProvider).then((result) => {
         console.log("Google sign-in successful.");
-        var idToken = result.idToken;
+        var idToken = result.credential.idToken;
         console.log(idToken);
         console.log(result.credential);
 
@@ -54,6 +54,25 @@ googleButton.addEventListener('click', function () {
         var facebookProvider = new firebase.auth.FacebookAuthProvider();
         firebase.auth().signInWithPopup(facebookProvider).then((result) => {
             console.log("Facebook sign-in successful.");
+
+            var idToken = result.credential.idToken;
+        console.log(idToken);
+        console.log(result.credential);
+
+            $.ajax({
+                        type: "GET",
+                        url: "https://game.server.helixderby.com/game/user/firebase/login/" + idToken,
+                    })
+                    .done(function(login_data) {
+                        console.log(login_data);
+                    })
+                    .fail(function(jqXHR, textStatus) {
+                        console.error("Error: " + textStatus);
+                    });
+
+
+
+
         }).catch((error) => {
             console.error("Facebook sign-in failed: ", error);
         });
