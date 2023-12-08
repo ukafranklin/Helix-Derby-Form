@@ -12,15 +12,23 @@
         appId: "1:534334309707:web:92060b4f94d1d5d6d354ce",
         measurementId: "G-VJC2QQX9QL"
     };
-    firebase.initializeApp(firebaseConfig);
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+    } catch (error) {
+        console.error("Firebase initialization error:", error);
+    }
 
     // Social Media Sign-In Function
     const socialSignIn = (provider) => {
         firebase.auth().signInWithPopup(provider).then((result) => {
             console.log(`${provider.providerId} sign-in successful.`);
-            const idToken = result.credential.idToken;
+            const idToken = result.user.Aa; // Corrected line
             authenticateUser(idToken);
         }).catch((error) => {
+            if (error.code === "auth/account-exists-with-different-credential") {
+                $("#errorMessage").text('The user is already registered, please login directly');
+            }
             console.error(`${provider.providerId} sign-in failed: `, error);
         });
     };
@@ -32,6 +40,8 @@
             url: `https://game.server.helixderby.com/game/user/firebase/login/${idToken}`,
         }).done((login_data) => {
             console.log(login_data);
+            window.location.href = "https://game.helixderby.com/account/reception?token=" + login_data.data;
+            // window.location.href = "https://game.helixderby.com/main";
         }).fail((jqXHR, textStatus) => {
             console.error("Error: " + textStatus);
         });
