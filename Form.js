@@ -2,7 +2,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
-    // Firebase configuration
+    // Firebase configuration and initialization
     const firebaseConfig = {
         apiKey: "AIzaSyAQ9pfGKqaXmyCrcuzWMjLg2DW1u5TIK5s",
         authDomain: "omniland-389817.firebaseapp.com",
@@ -12,194 +12,95 @@
         appId: "1:534334309707:web:92060b4f94d1d5d6d354ce",
         measurementId: "G-VJC2QQX9QL"
     };
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-
-
-//Google Sign-In
-const googleButton = document.getElementById('google');
-console.log(googleButton);
-
-googleButton.addEventListener('click', function () {
-    var googleProvider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(googleProvider).then((result) => {
-        console.log("Google sign-in successful.");
-        var idToken = result.credential.idToken;
-        console.log(idToken);
-        console.log(result.credential);
-
-            $.ajax({
-                        type: "GET",
-                        url: "https://game.server.helixderby.com/game/user/firebase/login/" + idToken,
-                    })
-                    .done(function(login_data) {
-                        console.log(login_data);
-                    })
-                    .fail(function(jqXHR, textStatus) {
-                        console.error("Error: " + textStatus);
-                    });
-
+    // Social Media Sign-In Function
+    const socialSignIn = (provider) => {
+        firebase.auth().signInWithPopup(provider).then((result) => {
+            console.log(`${provider.providerId} sign-in successful.`);
+            const idToken = result.credential.idToken;
+            authenticateUser(idToken);
         }).catch((error) => {
-            console.error("Google sign-in failed: ", error);
+            console.error(`${provider.providerId} sign-in failed: `, error);
         });
-    }); 
+    };
 
-    // Facebook Sign-In
-    const facebookButton = document.getElementById('facebook');
-    console.log(facebookButton);
-
-    facebookButton.addEventListener('click', function() {
-        var facebookProvider = new firebase.auth.FacebookAuthProvider();
-        firebase.auth().signInWithPopup(facebookProvider).then((result) => {
-            console.log("Facebook sign-in successful.");
-
-            var idToken = result.credential.idToken;
-        console.log(idToken);
-        console.log(result.credential);
-
-            $.ajax({
-                        type: "GET",
-                        url: "https://game.server.helixderby.com/game/user/firebase/login/" + idToken,
-                    })
-                    .done(function(login_data) {
-                        console.log(login_data);
-                    })
-                    .fail(function(jqXHR, textStatus) {
-                        console.error("Error: " + textStatus);
-                    });
-
-
-
-
-        }).catch((error) => {
-            console.error("Facebook sign-in failed: ", error);
+    // Authenticate User Function
+    const authenticateUser = (idToken) => {
+        $.ajax({
+            type: "GET",
+            url: `https://game.server.helixderby.com/game/user/firebase/login/${idToken}`,
+        }).done((login_data) => {
+            console.log(login_data);
+        }).fail((jqXHR, textStatus) => {
+            console.error("Error: " + textStatus);
         });
-    });
+    };
 
-    // Twitter Sign-In
-    const twitterButton = document.getElementById('twitter');
-    console.log(twitterButton);
+    // Event Listeners for Buttons
+    document.getElementById('google').addEventListener('click', () => socialSignIn(new firebase.auth.GoogleAuthProvider()));
+    document.getElementById('facebook').addEventListener('click', () => socialSignIn(new firebase.auth.FacebookAuthProvider()));
+    document.getElementById('twitter').addEventListener('click', () => socialSignIn(new firebase.auth.TwitterAuthProvider()));
 
-    twitterButton.addEventListener('click', function() {
-        var twitterProvider = new firebase.auth.TwitterAuthProvider();
-        firebase.auth().signInWithPopup(twitterProvider).then((result) => {
-            console.log("Twitter sign-in successful.");
-        }).catch((error) => {
-            console.error("Twitter sign-in failed: ", error);
-        });
-    });
-</script>
-    
-    
-    
-    
-<script>
-   
-    var Webflow = Webflow || [];
-    Webflow.push(function() {  });
-    var form = $(form);
-    
-            $("#registerForm").submit(function(e){
-                e.preventDefault();
-        
-       if(!$("#checkbox").is(":checked")){
+    // Registration Form Submission
+    $("#registerForm").submit((e) => {
+        e.preventDefault();
+        if (!$("#checkbox").is(":checked")) {
             alert('Please agree to the terms and conditions before submitting the form');
             return;
-                  }
-                  
-         
-    
-                let email = $("#email").val();
-                let password = $("#password").val();
-    
-                $.ajax({
-                    url: "https://game.server.helixderby.com/game/user/landing/page/email/register",
-                    type: 'POST',
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    data: JSON.stringify({
-                        emailAddress: email,
-                        password: password
-                    }),
-                    success: function(response) {
-                        if (response.msg==="SUCCESS"){
-                showOverlay();
-                showPopup();
-                        }
+        }
 
-                        if (response.msg==="X including lowercase(a-z) and uppercase (A-Z) letters X at least one number"){
-                        $("#successMessage").text('');
-                        $("#errorMessage").text('Password must include lowercase(a-z), uppercase (A-Z) letters and at least one number');
-                        }
+        const email = $("#email").val();
+        const password = $("#password").val();
+        registerUser(email, password);
+    });
 
-                        if (response.msg==="The user has registered, please login directly"){
-                        $("#successMessage").text('The user is already registered, please login directly');
-                        }
+    // User Registration Function
+    const registerUser = (email, password) => {
+        $.ajax({
+            url: "https://game.server.helixderby.com/game/user/landing/page/email/register",
+            type: 'POST',
+            headers: { "Content-Type": "application/json" },
+            data: JSON.stringify({ emailAddress: email, password: password }),
+            success: handleRegistrationResponse,
+        });
+    };
 
-                    },
-                });
-            });
+    // Handle Registration Response
+    const handleRegistrationResponse = (response) => {
+        if (response.msg === "SUCCESS") {
+            showOverlay();
+            showPopup();
+        } else if (response.msg.includes("lowercase(a-z) and uppercase (A-Z) letters")) {
+            $("#errorMessage").text('Password must include lowercase(a-z), uppercase (A-Z) letters and at least one number');
+        } else if (response.msg === "The user has registered, please login directly") {
+            $("#successMessage").text('The user is already registered, please login directly');
+        }
+    };
 
-            const  checkPassword = (str) => 
-                {
-                    var re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,20}$/;
-                    return re.test(str);
-                }
+    // Password Validation
+    const checkPassword = (str) => /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,20}$/.test(str);
 
-            const onChange = () => {
+    // Password Input Event Listener
+    $("#password").on("input", (event) => {
+        const validPassword = checkPassword(event.target.value);
+        $("#errorMessage").text(validPassword ? '' : 'Password must include lowercase(a-z), uppercase (A-Z) letters and at least one number');
+    });
 
-                const selectElement = document.querySelector("#password");
-                const result = document.querySelector(".result");
+    // Popup and Overlay Functions
+    const showOverlay = () => document.getElementById("overlay").style.display = "block";
+    const showPopup = () => document.getElementById("popup").style.display = "block";
+    const closePopup = () => {
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("popup").style.display = "none";
+    };
 
-            selectElement.addEventListener("input", (event) => {
-            const validpassword=checkPassword(event.target.value)
-
-            if (!validpassword) {
-                $("#errorMessage").text('Password must include lowercase(a-z), uppercase (A-Z) letters and at least one number');
-            } else {
-                $("#errorMessage").text('');
-            }
-
-            });
-        
-
-            }
-
-            onChange();
-       
-     
- 
-
-    function showOverlay() {
-      document.getElementById("overlay").style.display = "block";
-    }
-
-    function showPopup() {
-      document.getElementById("popup").style.display = "block";
-    }
-
-    function closePopup() {
-      document.getElementById("overlay").style.display = "none";
-      document.getElementById("popup").style.display = "none";
-    }
-
-  
-    function togglePasswordVisibility() {
-      var passwordInput = document.getElementById("password");
-      var icon = document.querySelector(".password-toggle-icon");
-
-      if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        icon.textContent = "🙈";
-      } else {
-        passwordInput.type = "password";
-        icon.textContent = "👁️";
-      }
-    }
-    
-   
-
+    // Toggle Password Visibility
+    const togglePasswordVisibility = () => {
+        const passwordInput = document.getElementById("password");
+        const icon = document.querySelector(".password-toggle-icon");
+        const isPasswordVisible = passwordInput.type === "password";
+        passwordInput.type = isPasswordVisible ? "text" : "password";
+        icon.textContent = isPasswordVisible ? "🙈" : "👁️";
+    };
 </script>
